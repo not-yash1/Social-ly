@@ -97,11 +97,22 @@ const userSchema = new mongoose.Schema({
     resetPasswordExpire: {
         type: Date,
     },
-    loginAttemp: {
+    isVerified: {
+        type: Boolean,
+        default: false
+    },
+    loginAttempts: {
         type: Number,
         default: 0
     },
-    loginAttempExpire: {
+    lockUntil: {
+        type: Date,
+    },
+    otpAttempts: {
+        type: Number,
+        default: 0
+    },
+    otpLockUntil: {
         type: Date,
     },
     chats: [
