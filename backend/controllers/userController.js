@@ -220,12 +220,12 @@ export const resendOtp = async (req, res) => {
 
         // Email generation
         const subject = 'Email verification';
-        const message = `Your otp is ${otp}. It will expire in ${process.env.OTP_EXPIRE} minutes`;
+        const body = `Your otp is ${otp}. It will expire in ${process.env.OTP_EXPIRE} minutes`;
         
         await sendEmail({
             email: user.email,
             subject,
-            message
+            message: body
         })
 
         // Send response
