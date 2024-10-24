@@ -8,5 +8,8 @@ export const message = {
     otpExpiredMessage: "Otp expired. Generate new otp",
     otpInvalidMessage: "Invalid otp",
     userVerifiedMessage: "User verified successfully",
-    otpSentMessage: "Otp sent successfully",
+    otpSentMessage: "Otp sent to your mail successfully",
+    badAuthMessage: "Invalid email or password",
+    otpAttemptsExceededMessage: "Too many attempts. Try again later",
+    missingFieldMessage: "Please provide all required fields",
 }

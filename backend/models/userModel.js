@@ -86,6 +86,12 @@ const userSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
+    loginOtp: {
+        type: Number,
+    },
+    loginOtpExpire: {
+        type: Date,
+    },
     otp: {
         type: Number,
     },
@@ -140,6 +146,10 @@ userSchema.pre('save', async function(next) {
     this.password = await bcrypt.hash(this.password, salt);
     next();
 });
+
+userSchema.methods.matchPassword = async function(enteredPassword) {
+    return await bcrypt.compare(enteredPassword, this.password)
+}
 
 userSchema.methods.generateToken = async function() {
     return jwt.sign({ id: this._id }, process.env.JWT_SECRET, {

@@ -2,6 +2,14 @@ import { sendEmail } from "../middleware/sendMail.js"
 import User from "../models/userModel.js"
 import { message } from "../utils/message.js"
 import { Response } from "../utils/response.js"
+import path from 'path'
+import fs from 'fs'
+import { fileURLToPath } from "url"
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+
+let emailTemplate = fs.readFileSync(path.join(__dirname, '../templates/mail.html'), 'utf-8')
 
 export const registerUser = async (req, res) => {
     try {
@@ -226,6 +234,76 @@ export const resendOtp = async (req, res) => {
             email: user.email,
             subject,
             message: body
+        })
+
+        // Send response
+        Response(res, 200, true, message.otpSentMessage)
+        
+    } catch (error) {
+        Response(res, 500, false, error.message)
+    }
+}
+
+export const loginUser = async (req, res) => {
+    try {
+        // Parsing body data
+        const { email, password } = req.body
+
+        // Checking body data
+        if(!email || !password) {
+            return Response(res, 400, false, message.missingFieldMessage)
+        }
+
+        // Finding user
+        let user = await User.findOne({ email }).select('+password')
+
+        // Checking user
+        if(!user) {
+            return Response(res, 404, false, message.userNotFoundMessage)
+        }
+
+        // If login is locked
+        if(user.lockUntil < Date.now()) {
+            return Response(res, 400, false, message.otpAttemptsExceededMessage)
+        }
+
+        // If loginAttempts exceeded
+        if(user.loginAttempts >= process.env.LOGIN_ATTEMPTS) {
+            return Response(res, 400, false, message.otpAttemptsExceededMessage)
+        }
+
+        // Password matching
+        if(!await user.matchPassword(password)) {
+            user.loginAttempts += 1;
+            await user.save();
+            return Response(res, 400, false, message.badAuthMessage)
+        }
+
+        // Generate otp
+        const loginOtp = Math.floor(100000 + Math.random() * 900000);
+        const loginOtpExpire = new Date(Date.now() + process.env.LOGIN_OTP_EXPIRE * 60 * 1000);
+
+        // Update user
+        user.loginAttempts = 0;
+        user.loginOtp = loginOtp;
+        user.loginOtpExpire = loginOtpExpire;
+        user.lockUntil = undefined;
+        await user.save();
+
+        // Send otp
+        const subject = 'Login verification';
+        const body = `Your otp is ${loginOtp}. It will expire in ${process.env.LOGIN_OTP_EXPIRE} minutes`;
+        
+        emailTemplate = emailTemplate.replace('{{OTP_CODE}}', loginOtp)
+        emailTemplate = emailTemplate.replace('{{PORT}}', process.env.PORT)
+        emailTemplate = emailTemplate.replace('{{USER_ID}}', user._id)
+        emailTemplate = emailTemplate.replaceAll('{{MAIL}}', process.env.MAIL)
+        
+        await sendEmail({
+            email: user.email,
+            subject,
+            message: body,
+            html: emailTemplate
         })
 
         // Send response
